@@ -1,0 +1,24 @@
+<!-- templates/upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload PDFs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <a href="/" class="text-blue-600 underline">← Back to Home</a>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <form action="/preview" method="post" enctype="multipart/form-data"
+        class="bg-white p-6 rounded shadow-xl w-full max-w-lg text-center">
+    <h1 class="text-2xl font-bold mb-4">Merge PDF Files</h1>
+
+    <input type="file" name="pdfs" accept="application/pdf" multiple required
+           class="block w-full border border-gray-300 rounded p-2 mb-4"/>
+
+    <button type="submit"
+            class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">
+      Select PDF Files
+    </button>
+  </form>
+</body>
+</html>
