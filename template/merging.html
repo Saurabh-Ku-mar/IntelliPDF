@@ -1,18 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Merging...</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="2;url=/download">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge PDF - IntelliPDF.com</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <style>
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+        .pdf-thumbnail {
+            max-width: 120px;
+            max-height: 160px;
+            object-fit: contain;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center">
-  <div class="text-center">
-    <svg class="animate-spin h-12 w-12 mx-auto text-red-600" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-    </svg>
-    <p class="mt-4 text-xl">Merging PDFs...</p>
-  </div>
-</body>
-</html>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-2xl font-bold text-blue-600">IntelliPDF.com</a>
+                    <span class="text-gray-400">|</span>
+                    <h1 class="text-lg font-semibold text-gray-700">Merge PDF</h1>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/" class="text-gray-600 hover:text-blue-600">Home</a>
+                    <a href="/tools" class="text-gray-600 hover:text-blue-600">Tools</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-object-group text-blue-600 mr-3"></i>
+                Merge PDF Files
+            </h1>
+            <p class="text-lg text-gray-600 mb-6">
+                Combine multiple PDF files into one document with advanced options
+            </p>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+            <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">Drop PDF files here or click to select</h3>
+                <p class="text-gray-500 mb-4">Select multiple PDF files to merge them into one document</p>
+                <input type="file" id="fileInput" accept=".pdf" multiple class="hidden">
+                <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Select PDF Files
+                </button>
+            </div>
+        </div>
+
+        <!-- Uploaded Files -->
+        <div id="uploadedFiles" class="hidden bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                Uploaded Files (<span id="fileCount">0</span>)
+            </h3>
+            <div id="fileList" class="space-y-4 mb-6"></div>
+            
+            <!-- Advanced Options -->
+            <div class="border-t pt-6">
+                <h4 class="text-md font-semibold text-gray-700 mb-4">Advanced Options</h4>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Watermark -->
+                    <div>
+                        <label class="flex items-center mb-3">
+                            <input type="checkbox" id="enableWatermark" class="mr-2">
+                            <span class="font-medium">Add Watermark</span>
+                        </label>
+                        <input type="text" id="watermarkText" placeholder="Enter watermark text" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100" disabled>
+                    </div>
+                    
+                    <!-- Password Protection -->
+                    <div>
+                        <label class="flex items-center mb-3">
+                            <input type="checkbox" id="enablePassword" class="mr-2">
+                            <span class="font-medium">Password Protection</span>
+                        </label>
+                        <input type="password" id="passwordInput" placeholder="Enter password" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100" disabled>
+                    </div>
+                    
+                    <!-- Compression -->
+                    <div>
+                        <label class="flex items-center mb-3">
+                            <input type="checkbox" id="enableCompression" class="mr-2" checked>
+                            <span class="font-medium">Compress PDF</span>
+                        </label>
+                        <p class="text-sm text-gray-500">Reduce file size by optimizing images and metadata</p>
+                    </div>
+                    
+                    <!-- Custom Filename -->
+                    <div>
+                        <label class="block font-medium mb-2">Output Filename</label>
+                        <input type="text" id="customFilename" placeholder="merged-document" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <p class="text-sm text-gray-500 mt-1">.pdf extension will be added automatically</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Merge Button -->
+            <div class="flex justify-center mt-8">
+                <button id="mergeBtn" class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                    <i class="fas fa-object-group mr-2"></i>Merge PDFs
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="hidden bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Processing...</h3>
+            <div class="bg-gray-200 rounded-full h-4 mb-2">
+                <div id="progressBar" class="bg-blue-600 h-4 rounded-full progress-bar" style="width: 0%"></div>
+            </div>
+            <p id="progressText" class="text-sm text-gray-600">Initializing...</p>
+        </div>
+
+        <!-- Merge History -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-history text-blue-500 mr-2"></i>
+                Merge History
+            </h3>
+            <div id="historyList" class="space-y-3">
+                <p class="text-gray-500 text-center py-8">No merge history yet. Start merging PDFs to see your history here.</p>
+            </div>
+            <div class="mt-4 text-right">
+                <button id="clearHistory" class="text-red-600 hover:text-red-700 text-sm">
+                    <i class="fas fa-trash mr-1"></i>Clear History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16 py-8">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p>&copy; 2024 IntelliPDF.com - All rights reserved</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+        class PDFMerger {
+            constructor() {
+                this.uploadedFiles = [];
+                this.initializeElements();
+                this.setupEventListeners();
+                this.loadHistory();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.uploadedFilesSection = document.getElementById('uploadedFiles');
+                this.fileList = document.getElementById('fileList');
+                this.fileCount = document.getElementById('fileCount');
+                this.mergeBtn = document.getElementById('mergeBtn');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressText = document.getElementById('progressText');
+                this.historyList = document.getElementById('historyList');
+            }
+
+            setupEventListeners() {
+                // File input change
+                this.fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
+
+                // Drag and drop
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('drag-over');
+                });
+
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('drag-over');
+                });
+
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('drag-over');
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+                    this.handleFiles(files);
+                });
+
+                // Merge button
+                this.mergeBtn.addEventListener('click', () => this.mergePDFs());
+
+                // Advanced options toggles
+                document.getElementById('enableWatermark').addEventListener('change', (e) => {
+                    document.getElementById('watermarkText').disabled = !e.target.checked;
+                });
+
+                document.getElementById('enablePassword').addEventListener('change', (e) => {
+                    document.getElementById('passwordInput').disabled = !e.target.checked;
+                });
+
+                // Clear history
+                document.getElementById('clearHistory').addEventListener('click', () => {
+                    localStorage.removeItem('pdfMergeHistory');
+                    this.loadHistory();
+                });
+            }
+
+            async handleFiles(files) {
+                for (let file of files) {
+                    if (file.type === 'application/pdf') {
+                        const fileData = {
+                            file: file,
+                            name: file.name,
+                            size: this.formatFileSize(file.size),
+                            id: Date.now() + Math.random()
+                        };
+
+                        try {
+                            fileData.thumbnail = await this.generateThumbnail(file);
+                        } catch (error) {
+                            console.error('Error generating thumbnail:', error);
+                            fileData.thumbnail = null;
+                        }
+
+                        this.uploadedFiles.push(fileData);
+                    }
+                }
+
+                this.updateFileList();
+            }
+
+            async generateThumbnail(file) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    const page = await pdf.getPage(1);
+                    
+                    const scale = 0.5;
+                    const viewport = page.getViewport({ scale });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    return canvas.toDataURL();
+                } catch (error) {
+                    console.error('Error generating thumbnail:', error);
+                    return null;
+                }
+            }
+
+            updateFileList() {
+                if (this.uploadedFiles.length === 0) {
+                    this.uploadedFilesSection.classList.add('hidden');
+                    return;
+                }
+
+                this.uploadedFilesSection.classList.remove('hidden');
+                this.fileCount.textContent = this.uploadedFiles.length;
+
+                this.fileList.innerHTML = this.uploadedFiles.map((fileData, index) => `
+                    <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                        <div class="flex-shrink-0">
+                            ${fileData.thumbnail ? 
+                                `<img src="${fileData.thumbnail}" alt="PDF Preview" class="pdf-thumbnail border rounded">` :
+                                `<div class="w-20 h-24 bg-gray-200 rounded flex items-center justify-center">
+                                    <i class="fas fa-file-pdf text-2xl text-red-500"></i>
+                                </div>`
+                            }
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-medium text-gray-800">${fileData.name}</h4>
+                            <p class="text-sm text-gray-500">Size: ${fileData.size}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="pdfMerger.moveFile(${index}, -1)" ${index === 0 ? 'disabled' : ''} 
+                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded disabled:text-gray-400">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button onclick="pdfMerger.moveFile(${index}, 1)" ${index === this.uploadedFiles.length - 1 ? 'disabled' : ''} 
+                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded disabled:text-gray-400">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button onclick="pdfMerger.removeFile(${index})" 
+                                    class="p-2 text-red-600 hover:bg-red-50 rounded">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            moveFile(index, direction) {
+                const newIndex = index + direction;
+                if (newIndex >= 0 && newIndex < this.uploadedFiles.length) {
+                    [this.uploadedFiles[index], this.uploadedFiles[newIndex]] = 
+                    [this.uploadedFiles[newIndex], this.uploadedFiles[index]];
+                    this.updateFileList();
+                }
+            }
+
+            removeFile(index) {
+                this.uploadedFiles.splice(index, 1);
+                this.updateFileList();
+            }
+
+            updateProgress(percent, text) {
+                this.progressBar.style.width = percent + '%';
+                this.progressText.textContent = text;
+            }
+
+            async mergePDFs() {
+                if (this.uploadedFiles.length < 2) {
+                    alert('Please select at least 2 PDF files to merge.');
+                    return;
+                }
+
+                this.progressContainer.classList.remove('hidden');
+                this.mergeBtn.disabled = true;
+
+                try {
+                    this.updateProgress(10, 'Initializing merge process...');
+
+                    const mergedPdf = await PDFLib.PDFDocument.create();
+                    
+                    // Get options
+                    const enableWatermark = document.getElementById('enableWatermark').checked;
+                    const watermarkText = document.getElementById('watermarkText').value;
+                    const enablePassword = document.getElementById('enablePassword').checked;
+                    const password = document.getElementById('passwordInput').value;
+                    const enableCompression = document.getElementById('enableCompression').checked;
+                    const customFilename = document.getElementById('customFilename').value || 'merged-document';
+
+                    for (let i = 0; i < this.uploadedFiles.length; i++) {
+                        const fileData = this.uploadedFiles[i];
+                        this.updateProgress(10 + (i / this.uploadedFiles.length) * 60, 
+                                          `Processing ${fileData.name}...`);
+
+                        const arrayBuffer = await fileData.file.arrayBuffer();
+                        const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                        
+                        copiedPages.forEach((page) => {
+                            if (enableWatermark && watermarkText) {
+                                this.addWatermark(page, watermarkText);
+                            }
+                            mergedPdf.addPage(page);
+                        });
+                    }
+
+                    this.updateProgress(80, 'Applying final processing...');
+
+                    // Set metadata
+                    mergedPdf.setTitle('Merged PDF Document');
+                    mergedPdf.setCreator('IntelliPDF.com');
+                    mergedPdf.setProducer('IntelliPDF.com PDF Merger');
+
+                    let pdfBytes;
+                    
+                    if (enablePassword && password) {
+                        this.updateProgress(90, 'Adding password protection...');
+                        pdfBytes = await mergedPdf.save({
+                            userPassword: password,
+                            ownerPassword: password
+                        });
+                    } else {
+                        pdfBytes = await mergedPdf.save();
+                    }
+
+                    this.updateProgress(100, 'Download ready!');
+
+                    // Generate filename with timestamp
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+                    const filename = `${customFilename}-${timestamp}.pdf`;
+
+                    // Download file
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+
+                    // Save to history
+                    this.saveToHistory({
+                        filename: filename,
+                        fileCount: this.uploadedFiles.length,
+                        timestamp: new Date().toISOString(),
+                        size: this.formatFileSize(pdfBytes.length),
+                        hasWatermark: enableWatermark,
+                        hasPassword: enablePassword,
+                        isCompressed: enableCompression
+                 
