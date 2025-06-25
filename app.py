@@ -3,15 +3,19 @@ import os, fitz
 from uuid import uuid4
 
 app = Flask(__name__)
-app.secret_key = 'secret-key'
+app.secret_key = os.environ.get('SECRET_KEY', 'default-secret-key')
+
 UPLOAD_FOLDER = 'uploads'
 MERGED_FOLDER = 'static/merged'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(MERGED_FOLDER, exist_ok=True)
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MERGED_FOLDER'] = MERGED_FOLDER
+
 @app.route('/')
 def home():
-    return send_from_directory('static', 'index.html')  # Serve static homepage
+    return send_from_directory('static', 'index.html')
 
 @app.route('/merge', methods=['GET', 'POST'])
 def upload_pdf():
@@ -27,8 +31,6 @@ def upload_pdf():
         return redirect('/preview')
     return render_template('upload.html')
 
-# ... (preview, merging, download routes same as before)
-
 @app.route('/preview', methods=['GET', 'POST'])
 def preview():
     files = session.get('pdf_files', [])
@@ -36,7 +38,7 @@ def preview():
         order = request.form.get('order')
         watermark = request.form.get('watermark', '').strip()
         if order:
-            order = eval(order)  # Better to use json.loads() in production
+            order = eval(order)
             session['ordered_files'] = order
         else:
             session['ordered_files'] = files
@@ -82,9 +84,9 @@ def merging():
 def download():
     filename = session.get('merged_filename')
     if not filename:
-        return redirect(url_for('upload'))
+        return redirect(url_for('upload_pdf'))
     return render_template('download.html', filename=filename)
 
-if __name__ == '__main__':
-   port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
