@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Merge PDF - IntelliPDF</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://unpkg.com/pdfjs-dist/build/pdf.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col items-center p-4">
+  <div class="bg-white shadow-xl rounded-xl p-6 w-full max-w-2xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">Merge PDF Files</h1>
+
+    <!-- Drag and Drop Area -->
+    <div id="dropArea" class="border-2 border-dashed border-gray-400 p-6 mb-4 rounded-lg text-center bg-gray-50 hover:bg-gray-100 cursor-pointer">
+      <p class="text-gray-600">Drag and drop your PDF files here or click to select</p>
+      <input type="file" id="pdfInput" multiple accept="application/pdf" class="hidden" />
+    </div>
+
+    <!-- Preview List -->
+    <ul id="fileList" class="text-sm text-gray-700 mb-4 space-y-2"></ul>
+
+    <!-- Watermark -->
+    <label class="block mb-2 font-semibold">Optional Watermark Text:</label>
+    <input type="text" id="watermarkText" placeholder="Enter watermark..." class="mb-4 w-full border p-2 rounded" />
+
+    <!-- Merge Button -->
+    <button onclick="mergePDFs()" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-semibold">
+      Merge and Download PDF
+    </button>
+
+    <!-- History -->
+    <div class="mt-6">
+      <h2 class="font-bold mb-2">History</h2>
+      <ul id="historyList" class="text-sm text-gray-600 space-y-1"></ul>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("pdfInput");
+    const fileList = document.getElementById("fileList");
+    const dropArea = document.getElementById("dropArea");
+    const historyList = document.getElementById("historyList");
+    let files = [];
+
+    dropArea.addEventListener("click", () => fileInput.click());
+
+    dropArea.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropArea.classList.add("bg-gray-200");
+    });
+
+    dropArea.addEventListener("dragleave", () => dropArea.classList.remove("bg-gray-200"));
+
+    dropArea.addEventListener("drop", e => {
+      e.preventDefault();
+      dropArea.classList.remove("bg-gray-200");
+      handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener("change", () => {
+      handleFiles(fileInput.files);
+    });
+
+    function handleFiles(selectedFiles) {
+      files = [...files, ...selectedFiles];
+      renderFileList();
+    }
+
+    async function renderFileList() {
+      fileList.innerHTML = "";
+      for (const file of files) {
+        const li = document.createElement("li");
+        li.className = "flex items-center space-x-2";
+        const span = document.createElement("span");
+        span.textContent = file.name;
+        li.appendChild(span);
+
+        // Preview thumbnail using pdfjs-dist
+        const fileURL = URL.createObjectURL(file);
+        const canvas = document.createElement("canvas");
+        canvas.width = 60;
+        canvas.height = 80;
+        const context = canvas.getContext("2d");
+        const pdf = await pdfjsLib.getDocument(fileURL).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.25 });
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        li.prepend(canvas);
+
+        fileList.appendChild(li);
+      }
+    }
+
+    async function mergePDFs() {
+      const watermark = document.getElementById("watermarkText").value;
+      const mergedPdf = await PDFLib.PDFDocument.create();
+
+      for (const file of files) {
+        const bytes = await file.arrayBuffer();
+        const pdf = await PDFLib.PDFDocument.load(bytes);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+
+        copiedPages.forEach((page) => {
+          mergedPdf.addPage(page);
+
+          if (watermark) {
+            const { width, height } = page.getSize();
+            page.drawText(watermark, {
+              x: 50,
+              y: height / 2,
+              size: 30,
+              rotate: PDFLib.degrees(45),
+              opacity: 0.3,
+              color: PDFLib.rgb(0.7, 0.7, 0.7),
+            });
+          }
+        });
+      }
+
+      const mergedBytes = await mergedPdf.save();
+      const blob = new Blob([mergedBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "merged.pdf";
+      link.click();
+
+      addToHistory("merged.pdf");
+    }
+
+    function addToHistory(filename) {
+      const li = document.createElement("li");
+      li.textContent = `${filename} - ${new Date().toLocaleTimeString()}`;
+      historyList.prepend(li);
+    }
+  </script>
+</body>
+</html>
