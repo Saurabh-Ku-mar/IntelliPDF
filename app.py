@@ -17,6 +17,10 @@ app.config['MERGED_FOLDER'] = MERGED_FOLDER
 def home():
     return send_from_directory('static', 'index.html')
 
+@app.route('/merging')
+def merge_page():
+    return render_template('merging.html')
+
 @app.route('/merge', methods=['GET', 'POST'])
 def upload_pdf():
     if request.method == 'POST':
