@@ -7,3 +7,4 @@ services:
     envVars:
       - key: SECRET_KEY
         value: a46c8f7dbe039296ffee121d54be66d1
+
